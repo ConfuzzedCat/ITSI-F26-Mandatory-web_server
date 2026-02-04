@@ -8,6 +8,15 @@ Importerer metoder fra Socket API'en:
 
 import socket 
 
+def http_response(html_text):
+    response = ""
+    response = "HTTP/1.1 200\r\n"
+    response += "content-type: text/html\r\n"
+    response += "\r\n"
+    response += html_text
+    response += "\r\n"
+    return response
+
 """
 Opretter to globale variabler for HOST og PORT, man kunne segmenterer det 
 ind i en start_server funktion, men i forhold til opgavens scope giver det mening 
@@ -18,7 +27,15 @@ at oprette dem som globale variabler.
 HOST = "127.0.0.1"
 
 #Porte under nummer 1024 er privilgerede, så valget på 6767 er vilkårligt. 
-PORT = 6767
+PORT = 7173
+
+"""
+contextmanaer bvlabvla
+"""
+html_index = ""
+with open("index.html", "r") as file:
+    html_index_lines = file.readlines()
+    html_index = "".join(html_index_lines)
 
 """
 Nu opretter vi så en socket/dør, ved at bruge socketfunktionaliteter,
@@ -62,7 +79,11 @@ skulle være mere end det skal man vidst loope det igennem flere .recv() calls.
 request = connection.recv(1024).decode()
 print("Klienten har sendt: ", request)
 
+connection.send(http_response(html_index).encode())
 
 
 
+
+connection.close()
+server_socket.close()
 
