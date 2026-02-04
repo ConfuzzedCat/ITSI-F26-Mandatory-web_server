@@ -18,7 +18,7 @@ at oprette dem som globale variabler.
 HOST = "127.0.0.1"
 
 #Porte under nummer 1024 er privilgerede, så valget på 6767 er vilkårligt. 
-PORT = "6767"
+PORT = 6767
 
 """
 Nu opretter vi så en socket/dør, ved at bruge socketfunktionaliteter,
@@ -36,7 +36,7 @@ Herefter benytter vi os af .bind() funktionaliteten, hvor vi
 gør at socketen skal benytte sig af vores HOST og PORT variabel.
 bind() funktionen expecter én tuple.
 """
-server_socket = socket.bind((HOST, PORT))
+server_socket.bind((HOST, PORT))
 
 """
 Nu kan vi indikerer hvor mange forbindelser der må tilgå vores server
@@ -44,7 +44,7 @@ ved at bruge .listen() - Den kan tage et int som argument, i forhold til
 hvor mange forbindelser der maximalt på tilknyttes vores server. Til
 at starte med indikerer vi bare én.
 """
-server_socket = socket.listen(1)
+server_socket.listen(1)
 print("Serveren lytter fra port: ", PORT)
 
 """
