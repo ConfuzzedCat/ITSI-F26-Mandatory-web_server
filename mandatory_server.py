@@ -8,14 +8,21 @@ Importerer metoder fra Socket API'en:
 
 import socket 
 
-def http_response(html_text):
+def make_http_response(payload, status=200):
     response = ""
-    response = "HTTP/1.1 200\r\n"
+    response = f"HTTP/1.1 {status}\r\n"
     response += "content-type: text/html\r\n"
     response += "\r\n"
-    response += html_text
+    response += payload
     response += "\r\n"
     return response
+
+def parse_request(req_payload, conn):
+    payload_split = req_payload.split("\r\n")
+    #print(http_method, http_resource, http_version, sep=",")
+    req_list = payload_split[0].split()
+    if len(req_list) > 3:
+        conn.send(make_http_response("", status=400))
 
 """
 Opretter to globale variabler for HOST og PORT, man kunne segmenterer det 
@@ -27,15 +34,11 @@ at oprette dem som globale variabler.
 HOST = "127.0.0.1"
 
 #Porte under nummer 1024 er privilgerede, så valget på 6767 er vilkårligt. 
-PORT = 7173
+PORT = 7178
 
 """
 contextmanaer bvlabvla
 """
-html_index = ""
-with open("index.html", "r") as file:
-    html_index_lines = file.readlines()
-    html_index = "".join(html_index_lines)
 
 """
 Nu opretter vi så en socket/dør, ved at bruge socketfunktionaliteter,
@@ -77,11 +80,34 @@ skulle være mere end det skal man vidst loope det igennem flere .recv() calls.
 .decode() omskriver requesten til en string.
 """
 request = connection.recv(1024).decode()
-print("Klienten har sendt: ", request)
+#print("Klienten har sendt: ", request)
 
-connection.send(http_response(html_index).encode())
+def find_html_file(path):
+    if path == "/":
+        path = "/index.html"
+    
+    if path.startswith("/"):
+        path = path[1:]
+    
+    try:
+        with open(path, "r") as file:
+            lines = file.readlines()
+            text_content = "".join(lines)
+    except:
+        return ""
+    return text_content
 
+http_method, http_resource, http_version = parse_request(request)
 
+http_response = ""
+
+file_content = find_html_file(http_resource)
+if file_content == "":
+    http_response = make_http_response("", status=404)
+else:
+    http_response = make_http_response(file_content)
+
+connection.send(http_response.encode())
 
 
 connection.close()
