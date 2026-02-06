@@ -21,8 +21,17 @@ def parse_request(req_payload, conn):
     payload_split = req_payload.split("\r\n")
     #print(http_method, http_resource, http_version, sep=",")
     req_list = payload_split[0].split()
+    print(req_list)
     if len(req_list) > 3:
         conn.send(make_http_response("", status=400))
+        #Evt. kig på en return None, None, None her? Vi kigger på det.
+        
+    http_method = req_list[0]
+    http_resource = req_list[1]
+    http_version = req_list[2]
+    print(f'method: {http_method}, ressource: {http_resource}, version: {http_version}')
+    return http_method, http_resource, http_version
+    
 
 """
 Opretter to globale variabler for HOST og PORT, man kunne segmenterer det 
@@ -34,7 +43,7 @@ at oprette dem som globale variabler.
 HOST = "127.0.0.1"
 
 #Porte under nummer 1024 er privilgerede, så valget på 6767 er vilkårligt. 
-PORT = 7178
+PORT = 7185
 
 """
 contextmanaer bvlabvla
@@ -97,7 +106,7 @@ def find_html_file(path):
         return ""
     return text_content
 
-http_method, http_resource, http_version = parse_request(request)
+http_method, http_resource, http_version = parse_request(request, conn=any)
 
 http_response = ""
 
