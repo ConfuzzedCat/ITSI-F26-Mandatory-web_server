@@ -7,6 +7,7 @@ Importerer metoder fra Socket API'en:
 """
 
 import socket 
+import datetime
 
 def make_http_response(payload, status=200):
     
@@ -17,7 +18,7 @@ def make_http_response(payload, status=200):
     }.get(status, "")
     
     response = ""
-    response = f"HTTP/1.1 {status}\r\n"
+    response = f"HTTP/1.1 {status} {status_text}\r\n"
     response += f"content-type: {len(payload.encode())}\r\n"
     response += "\r\n"
     response += payload
@@ -30,7 +31,7 @@ def parse_request(req_payload, conn):
     req_list = payload_split[0].split()
     print(req_list)
     if len(req_list) > 3:
-        conn.send(make_http_response("", status=400))
+        conn.send(make_http_response("", status=400).encode())
         #Evt. kig på en return None, None, None her? Vi kigger på det.
 
     http_method = req_list[0]
@@ -39,6 +40,32 @@ def parse_request(req_payload, conn):
     print(f'method: {http_method}, ressource: {http_resource}, version: {http_version}')
     return http_method, http_resource, http_version
     
+def log(msg):
+    log_file = open("server.log", "a")
+    log_file.write(msg + "\n")
+    print(msg)
+    log_file.close()
+
+def log_request(ip_address, http_method, http_resource, http_version, http_status, size_of_response):
+    date = datetime.datetime.now().strftime("%d/%b/%Y:%X")
+    log_message = f'{ip_address} - - [{date}] "{http_method} {http_resource} {http_version}" {http_status} {size_of_response}'
+    log(log_message)
+
+def find_html_file(path):
+    if path == "/":
+        path = "/index.html"
+    
+    if path.startswith("/"):
+        path = path[1:]
+    
+    try:
+        with open(path, "r") as file:
+            lines = file.readlines()
+            text_content = "".join(lines)
+    except:
+        return ""
+    return text_content
+
 
 """
 Opretter to globale variabler for HOST og PORT, man kunne segmenterer det 
@@ -50,7 +77,7 @@ at oprette dem som globale variabler.
 HOST = "127.0.0.1"
 
 #Porte under nummer 1024 er privilgerede, så valget på 6767 er vilkårligt. 
-PORT = 7188
+PORT = 7195
 
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,43 +87,34 @@ server_socket.bind((HOST, PORT))
 server_socket.listen(1)
 print("Serveren lytter fra port: ", PORT)
 
-while True:
-    connection, address = server_socket.accept()
-    request = connection.recv(1024).decode()
-    #print("Klienten har sendt: ", request)
-
-    def find_html_file(path):
-        if path == "/":
-            path = "/index.html"
-        
-        if path.startswith("/"):
-            path = path[1:]
-        
+try:
+    while True:
+        connection, address = server_socket.accept()
+        client_host, client_port = connection.getpeername()
         try:
-            with open(path, "r") as file:
-                lines = file.readlines()
-                text_content = "".join(lines)
+            request = connection.recv(1024).decode()
+            #print("Klienten har sendt: ", request)
+
+            http_method, http_resource, http_version = parse_request(request, conn=connection)
+            http_response = ""
+
+            file_content = find_html_file(http_resource)
+            if file_content == "":
+                http_response = make_http_response("", status=404)
+                log_request(client_host, http_method, http_resource, http_version, 404, len(http_response))
+            else:
+                http_response = make_http_response(file_content)
+                log_request(client_host, http_method, http_resource, http_version, 200, len(http_response))
+
+            connection.send(http_response.encode())
         except:
-            return ""
-        return text_content
-
-    http_method, http_resource, http_version = parse_request(request, conn=any)
-
-    http_response = ""
-
-    file_content = find_html_file(http_resource)
-    if file_content == "":
-        http_response = make_http_response("", status=404)
-    else:
-        http_response = make_http_response(file_content)
-
-    connection.send(http_response.encode())
-
-
-    connection.close()
-server_socket.close()
-
-
+            connection.send(make_http_response("", status=400).encode())
+        finally:
+            connection.close()
+except KeyboardInterrupt:
+    print("\b\bLukker serveren")
+finally:
+    server_socket.close()
 
 
 """
